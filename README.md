@@ -1,2 +1,2 @@
-# VG-Scraper
-Web scraping video game names from Wikipedia using R
+# Video Games on Wikipedia
+Get the list of vido games on Wikipedia
