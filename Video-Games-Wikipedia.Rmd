@@ -1,0 +1,40 @@
+---
+title: "Video Games on wikipedia"
+output: html_notebook
+---
+
+This code will get the names of video games on Wikipedia
+
+# Prerequisites
+- `WikipediR` 
+- `tidyverse`
+
+```{r}
+library(WikipediR)
+library(tidyverse)
+```
+
+# Categories
+
+```{r}
+# 1968 - 2020
+target_categories <- paste0(1968:2020, " video games")
+
+
+master_list <- NULL
+
+for(i in target_categories){
+  cats <- pages_in_category("en", "wikipedia", categories = i, type = "page",
+                            limit = 999999)
+  pages <- cats$query$categorymembers
+  for(j in 1:length(pages)){
+    master_list <- c(master_list, pages[[j]]$title)
+  }
+}
+
+output_table <- tibble(names = master_list)
+
+write_csv(output_table, "videogameslist.csv")
+
+```
+
