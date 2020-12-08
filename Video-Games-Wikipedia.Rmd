@@ -47,7 +47,7 @@ for(i in 1:length(target_categories)){
     temp_table <- temp_table %>% mutate(category = target_categories[i])
     # Bind rows to the output table
     output_table <- output_table %>% bind_rows(temp_table)
-      # Evaluate if we should continue for the next pages in the same category
+    # Evaluate if we should continue for the next pages in the same category
     iscmcontinue <- is.character(fullquery$continue$cmcontinue)
     if(iscmcontinue){
       extra_query <- list(cmcontinue = fullquery$continue$cmcontinue)
@@ -59,7 +59,9 @@ for(i in 1:length(target_categories)){
 
 # Fix en dashes (show corrupted in csv)
 output_table <- output_table %>%
-  mutate(title = str_replace(title, "–", "-"))
+  mutate(title = str_replace(title, "–", "-")) %>% 
+  mutate(title = str_replace_all(title, "\\\\", " - ")) %>%
+  mutate(title = str_replace_all(title, "\"", "")) 
 # Write out to a .csv file
 write_csv(output_table, "videogameslist.csv")
 ```
@@ -67,11 +69,10 @@ write_csv(output_table, "videogameslist.csv")
 
 The purpose of this query is to use them in a jQuery autocomplete. The code requires a string of quoted titles.
 ```{r}
-textoutput <- paste0("'", output_table$title, "'") %>%
-  paste(collapse = ", ")
+textoutput <- paste0('"', output_table$title, '"') %>%
+  paste(collapse = ", \n ")
 # Save to a text file
 sink("textoutput.txt")
 cat(textoutput)
 sink()
 ```
-
