@@ -10,8 +10,13 @@ This code will get the names of video games on Wikipedia
 - `tidyverse`
 
 ```{r}
-library(WikipediR)
+# library(WikipediR)
+# use the development version of WikipediR
+library(devtools)
+install_github("nsunami/WikipediR")
 library(tidyverse)
+library(WikipediR)
+library(stringr)
 ```
 
 # Categories
@@ -19,22 +24,54 @@ library(tidyverse)
 ```{r}
 # 1968 - 2020
 target_categories <- paste0(1968:2020, " video games")
-
-
-master_list <- NULL
-
-for(i in target_categories){
-  cats <- pages_in_category("en", "wikipedia", categories = i, type = "page",
-                            limit = 999999)
-  pages <- cats$query$categorymembers
-  for(j in 1:length(pages)){
-    master_list <- c(master_list, pages[[j]]$title)
+# Prepare an output table
+output_table <- tibble()
+# Loop through the categories to query
+for(i in 1:length(target_categories)){
+  print(paste("Processing", target_categories[i]))
+  extra_query <- list()
+  while(TRUE){
+    # Queried response - table (clean_response = TRUE)
+    temp_table <- pages_in_category("en", "wikipedia", 
+                                    categories = target_categories[i], type = "page",
+                                    properties = "title", limit = 500,
+                                    clean_response = TRUE,
+                                    extra_query = extra_query)
+    # Queried response - full - for cmcontinue
+    fullquery <- pages_in_category("en", "wikipedia", 
+                                   categories = target_categories[i], type = "page",
+                                   properties = "title", limit = 500,
+                                   clean_response = FALSE,
+                                   extra_query = extra_query)
+    # Add year (category)
+    temp_table <- temp_table %>% mutate(category = target_categories[i])
+    # Bind rows to the output table
+    output_table <- output_table %>% bind_rows(temp_table)
+      # Evaluate if we should continue for the next pages in the same category
+    iscmcontinue <- is.character(fullquery$continue$cmcontinue)
+    if(iscmcontinue){
+      extra_query <- list(cmcontinue = fullquery$continue$cmcontinue)
+    } else {
+      break
+    }
   }
 }
 
-output_table <- tibble(names = master_list)
-
+# Fix en dashes (show corrupted in csv)
+output_table <- output_table %>%
+  mutate(title = str_replace(title, "–", "-"))
+# Write out to a .csv file
 write_csv(output_table, "videogameslist.csv")
+```
 
+
+The purpose of this query is to use them in a jQuery autocomplete. The code requires a string of quoted titles.
+```{r}
+textoutput <- paste0("'", output_table$title, "'") %>%
+  paste(collapse = ", ")
+# Save to a text file
+sink("textoutput.txt")
+cat(textoutput)
+sink()
 ```
 
